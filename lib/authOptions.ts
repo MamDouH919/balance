@@ -5,6 +5,7 @@ import dbConnect from "@/lib/dbConnect";
 import User from "@/models/Users";
 import { UserRole } from "./types";
 
+
 export const authOptions: AuthOptions = {
     session: {
         strategy: "jwt",
