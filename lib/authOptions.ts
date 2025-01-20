@@ -3,7 +3,6 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { verifyPassword } from "@/lib/auth";
 import dbConnect from "@/lib/dbConnect";
 import User from "@/models/Users";
-import { UserRole } from "./types";
 
 
 export const authOptions: AuthOptions = {
@@ -103,7 +102,7 @@ export const authOptions: AuthOptions = {
 
             if (token) {
                 session.user = {
-                    role: token.role as UserRole,
+                    role: token.role as "admin" | "user" | "superAdmin",
                     email: token.email,
                     name: token.name,
                     userId: token.userId as string,
