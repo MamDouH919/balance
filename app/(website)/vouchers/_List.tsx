@@ -2,11 +2,10 @@
 import * as React from 'react';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
-import TableCell from '@mui/material/TableCell';
 import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
-import { Button, IconButton, Stack } from '@mui/material';
+import { Button, Stack } from '@mui/material';
 import { styled } from "@mui/material/styles";
 
 import axios from 'axios';
@@ -15,8 +14,10 @@ import ListPaper from '@/Component/ListPaper';
 import TableBodyWithLoad from '@/Component/TableBodyWithLoad';
 import { FixedTableCell } from '@/Component/FixedTableCell';
 import MUITablePagination from '@/Component/TablePagination';
-import { Edit } from '@mui/icons-material';
 import Form from './_Form';
+import { useSearchParams } from 'next/navigation';
+import { dateFormatLL } from '@/Component/helperFunctions/dateFunctions';
+import { TableCellColor } from '@/Component/CellColor';
 
 
 const PREFIX = "orders";
@@ -52,13 +53,20 @@ export default function TransactionsList() {
     const [loading, setLoading] = React.useState(true);
 
     const [data, setData] = React.useState<any>([]);
+    const [totals, setTotals] = React.useState<any>({});
     const [totalCount, setTotalCount] = React.useState<number>(0);
 
+    const searchParams = useSearchParams();
+    const status = searchParams.get("status");
+    console.log(data);
+
+
     const fetchData = async () => {
-        const response = await axios.get(`/api/users?page=${page + 1}&limit=${pageSize}`)
+        const response = await axios.get(`/api/vouchers?page=${page + 1}&limit=${pageSize}&${status ? `status=${status}` : ''}`)
         setLoading(false);
-        setData(response.data.users);
-        setTotalCount(response.data.pagination.totalUsers);
+        setData(response.data.vouchers);
+        setTotals(response.data.totals);
+        setTotalCount(response.data.pagination.totalVouchers);
     };
 
     React.useEffect(() => {
@@ -85,9 +93,13 @@ export default function TransactionsList() {
     };
 
     const tableCellHeader = [
-        "ــ", "الأسم", "البريد الإلكتروني", "فعال", "خيارات"
+        "ــ", "عنوان السند", "نوع السند", "الوصف", "المقبوض", "المدفوع", "القائم بالإنشاء", "تاريخ الإنشاء"
     ]
 
+    const types: Record<"income" | "expense", string> = {
+        income: "سند قبض",
+        expense: "سند دفع",
+    };
 
     return (
         <Root>
@@ -113,9 +125,9 @@ export default function TransactionsList() {
                             <TableHead>
                                 <TableRow>
                                     {tableCellHeader.map(e =>
-                                        <TableCell align={'left'} key={e}>
+                                        <FixedTableCell align={'left'} key={e}>
                                             {e}
-                                        </TableCell>
+                                        </FixedTableCell>
                                     )}
                                 </TableRow>
                             </TableHead>
@@ -128,15 +140,30 @@ export default function TransactionsList() {
                                                     {index + 1}
                                                 </FixedTableCell>
                                                 <FixedTableCell>
-                                                    {row.name}
+                                                    {row.title}
+                                                </FixedTableCell>
+                                                <TableCellColor
+                                                    cell={{
+                                                        code: row.type,
+                                                        label: types[row.type as keyof typeof types] || "Unknown type", // Fallback for unexpected values
+                                                    }}
+                                                />
+                                                <FixedTableCell>
+                                                    {row.description}
                                                 </FixedTableCell>
                                                 <FixedTableCell>
-                                                    {row.email}
+                                                    {row.incomeAmount}
                                                 </FixedTableCell>
                                                 <FixedTableCell>
-                                                    {row.isActive ? "Yes" : "No"}
+                                                    {row.expenseAmount}
                                                 </FixedTableCell>
                                                 <FixedTableCell>
+                                                    {row.userId.email}
+                                                </FixedTableCell>
+                                                <FixedTableCell>
+                                                    {dateFormatLL(row.createdAt, "ar")}
+                                                </FixedTableCell>
+                                                {/* <FixedTableCell>
                                                     <IconButton
                                                         size='small'
                                                         onClick={() => {
@@ -146,12 +173,28 @@ export default function TransactionsList() {
                                                     >
                                                         <Edit fontSize='inherit' />
                                                     </IconButton>
-                                                </FixedTableCell>
+                                                </FixedTableCell> */}
                                             </TableRow>
                                         );
                                     })}
+                                    <TableRow hover>
+                                        <FixedTableCell colSpan={3} allowPlaceholder={false} />
+                                        <FixedTableCell>{"المجموع"}</FixedTableCell>
+                                        <FixedTableCell>
+                                            {totals.totalIncomeAmount}
+                                        </FixedTableCell>
+                                        <FixedTableCell>
+                                            {totals.totalExpenseAmount}
+                                        </FixedTableCell>
+                                        <FixedTableCell>
+                                            {"الصافي"}{": "}{totals.totalIncomeAmount - totals.totalExpenseAmount}
+                                        </FixedTableCell>
+                                        <FixedTableCell colSpan={4} allowPlaceholder={false} />
+                                    </TableRow>
                                 </TableBody>
+
                             </TableBodyWithLoad>
+
                         </Table>
 
                     </TableContainer>

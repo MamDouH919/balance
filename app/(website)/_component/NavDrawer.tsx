@@ -7,14 +7,12 @@ import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
 
 import { styled } from "@mui/material/styles";
-import React, { Fragment, memo } from "react";
+import React, { Fragment, memo, useState } from "react";
 import { Collapse } from "@mui/material";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import {
     DashboardOutlined,
     HouseOutlined,
-    RecentActorsOutlined,
 } from '@mui/icons-material';
 
 import clsx from "clsx";
@@ -31,7 +29,7 @@ const classes = {
     ListItemTextActive: `${PREFIX}-ListItemTextActive`,
 };
 
-const drawerWidth = 180;
+const drawerWidth = 200;
 
 // TODO jss-to-styled codemod: The Fragment root was replaced by div. Change the tag if needed.
 const Root = styled(Drawer)(({ theme }) => ({
@@ -74,46 +72,37 @@ interface propsInput {
     DrawerHeader: any,
 }
 
-interface LinksListChildren {
-    pathname: string,
-    icon: any,
-    primary: string,
-}
-interface LinksList {
-    pathname: string,
-    icon: any,
-    primary: string,
-    regex: RegExp,
-    sectionName?: string,
-    children?: LinksListChildren[],
+interface LinkItem {
+    pathname?: string;
+    primary: string;
+    icon?: React.ElementType;
+    permission?: string;
+    action?: () => void;
+    children?: LinkItem[];
+    sectionName?: string;
 }
 
 const NavDrawer = (props: propsInput) => {
     const { open, DrawerHeader } = props;
-    const pathname = usePathname()
 
-    const linksList: LinksList[] = [
+    const linksList: LinkItem[] = [
         {
             pathname: "/users",
             icon: DashboardOutlined,
             primary: "المستخدمين",
-            regex: /users/,
         },
         {
-            regex: /transactions/,
-            pathname: "/transactions",
-            sectionName: "transactions",
+            pathname: "/vouchers",
             icon: HouseOutlined,
-            primary: "المعاملات",
-        },
-        {
-            pathname: "/admin/contacts",
-            sectionName: "contacts",
-            icon: RecentActorsOutlined,
-            primary: "contacts",
-            regex: /contacts/,
+            primary: "سندات القبض والدفع",
         },
     ];
+
+    const [nestedList, setNestedList] = useState<Record<string, boolean>>({});
+
+    const toggleNestedList = (key: string) => {
+        setNestedList((prev) => ({ ...prev, [key]: !prev[key] }));
+    };
 
     return (
         <Root
@@ -134,17 +123,17 @@ const NavDrawer = (props: propsInput) => {
             <List className={classes.list}>
                 {linksList.map((link, index) => {
                     if (!link.children) {
-                        return <Link href={link.pathname} key={index} className={classes.link}>
+                        return <Link href={link.pathname!} key={index} className={classes.link}>
                             <ListItem disablePadding>
                                 <ListItemButton
                                     className={classes.listItem}>
                                     <ListItemIcon
-                                        className={clsx(classes.listIcon, { [classes.ListItemTextActive]: link.regex.test(pathname) })}
+                                        className={clsx(classes.listIcon)}
                                     >
-                                        {<link.icon fontSize={"small"} />}
+                                        {link.icon && <link.icon fontSize={"small"} />}
                                     </ListItemIcon>
                                     <ListItemText
-                                        className={clsx(classes.ListItemText, { [classes.ListItemTextActive]: link.regex.test(pathname) })}
+                                        className={clsx(classes.ListItemText)}
                                         disableTypography={true}
                                         primary={link.primary}
                                     />
@@ -153,29 +142,28 @@ const NavDrawer = (props: propsInput) => {
                         </Link>
                     } else {
                         return <Fragment key={index}>
-                            <Link href={link.pathname} className={classes.link}>
-                                <ListItemButton
-                                    className={classes.listItem}>
-                                    <ListItemIcon className={classes.listIcon}>
-                                        {<link.icon fontSize={"small"} />}
-                                    </ListItemIcon>
-                                    <ListItemText
-                                        className={classes.ListItemText}
-                                        disableTypography={true}
-                                        primary={link.primary}
-                                    />
-                                </ListItemButton>
-                            </Link>
+                            <ListItemButton
+                                onClick={() => toggleNestedList(link.sectionName || "")}
+                                className={clsx(classes.listItem, classes.link)}>
+                                <ListItemIcon className={classes.listIcon}>
+                                    {link.icon && <link.icon fontSize={"small"} />}
+                                </ListItemIcon>
+                                <ListItemText
+                                    className={classes.ListItemText}
+                                    disableTypography={true}
+                                    primary={link.primary}
+                                />
+                            </ListItemButton>
                             <Collapse
+                                in={nestedList[link.sectionName || ""]}
                                 key={index}
-                                in={link.regex.test(pathname) ?? false}
                                 timeout="auto"
                                 unmountOnExit
                             >
                                 {link?.children?.map((child, i) => {
                                     return (
                                         <Link
-                                            href={child.pathname}
+                                            href={child.pathname!}
                                             key={i}
                                             className={classes.link}
                                         >

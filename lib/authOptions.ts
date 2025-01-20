@@ -3,10 +3,12 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { verifyPassword } from "@/lib/auth";
 import dbConnect from "@/lib/dbConnect";
 import User from "@/models/Users";
+import { UserRole } from "./types";
 
 export const authOptions: AuthOptions = {
     session: {
         strategy: "jwt",
+        maxAge: 30 * 24 * 60 * 60, // Session duration: 30 days (1 month)
     },
     secret: process.env.NEXTAUTH_SECRET,
     jwt: {
@@ -63,6 +65,8 @@ export const authOptions: AuthOptions = {
     ],
     callbacks: {
         async jwt({ token }) {
+            console.log("token", token);
+            
             const userExists = await User.findOne({ email: token.email });
             console.log(userExists);
 
@@ -98,7 +102,7 @@ export const authOptions: AuthOptions = {
 
             if (token) {
                 session.user = {
-                    role: token.role,
+                    role: token.role as UserRole,
                     email: token.email,
                     name: token.name,
                     userId: token.userId as string,

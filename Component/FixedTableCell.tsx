@@ -35,7 +35,7 @@ export const FixedTableCell = memo(function FixedTableCell(props: FixedTableCell
     return (
         <StyledTableCell {...restProps}>
             <div className={auto ? classes.cellWidthAuto : classes.cellWidth} dir={dir}>
-                {props.children ?? (allowPlaceholder && "placeholder")}
+                {props.children ?? (allowPlaceholder && "ــــ")}
             </div>
         </StyledTableCell>
     );

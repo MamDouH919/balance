@@ -6,8 +6,6 @@ export interface IUser extends Document {
     password: string;
     role: "superAdmin" | "admin" | "user"; // Define role as a union type
     isActive: boolean;
-    updatedAt: Date;
-    createdAt: Date;
 }
 
 const UserSchema: Schema = new mongoose.Schema(
@@ -28,7 +26,7 @@ const UserSchema: Schema = new mongoose.Schema(
         role: {
             type: String,
             required: true,
-            enum: ["superAdmin", "admin", "user"], // Use enum to restrict values
+            enum: ["superAdmin", "admin", "user"],
         },
         isActive: {
             type: Boolean,
@@ -36,11 +34,16 @@ const UserSchema: Schema = new mongoose.Schema(
         },
     },
     {
-        timestamps: true, // Automatically add and manage createdAt and updatedAt fields
+        timestamps: true,
     }
 );
 
+UserSchema.virtual("vouchers", {
+    ref: "Vouchers",
+    localField: "_id",
+    foreignField: "userId",
+});
+
 const User = mongoose.models?.User || mongoose.model<IUser>("User", UserSchema);
-// const User = mongoose.model<IUser>("User", UserSchema);
 
 export default User;

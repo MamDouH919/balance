@@ -22,8 +22,8 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-    const session = await getServerSession(authOptions); // Explicitly pass authOptions
-
+    const session = await getServerSession(authOptions) // Explicitly pass authOptions
+    
     return (
         <html lang="en" dir="rtl">
             <body className={cairo.variable}>

@@ -11,7 +11,7 @@ import Link from 'next/link';
 import NavDrawer from './NavDrawer';
 import useWidth, { isWidthDown } from '@/Component/helperFunctions/useWidth';
 
-const drawerWidth = 180;
+const drawerWidth = 200;
 
 const Main = styled('main', { shouldForwardProp: (prop) => prop !== 'open' })<{ open?: boolean; }>(({ theme, open }) => ({
     flexGrow: 1,

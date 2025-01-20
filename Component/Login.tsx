@@ -96,8 +96,6 @@ const Login = () => {
                     setErrorMessage(errors.isActive);
                 }
             } else {
-                console.log('Signed in successfully:', result);
-                
                 router.refresh();
                 router.replace('/');
             }
