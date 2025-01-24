@@ -30,6 +30,9 @@ export async function GET(request: Request) {
         const offset = month === "last" ? -1 : 0; // Offset for the last month
         const { firstDay, lastDay } = getMonthRange(offset);
 
+        console.log(firstDay, lastDay)
+        
+
         // Fetch aggregated data
         const data = await Vouchers.aggregate([
             {

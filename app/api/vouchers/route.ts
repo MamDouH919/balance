@@ -12,52 +12,64 @@ export async function GET(req: NextRequest) {
         const { searchParams } = new URL(req.url);
         const page = parseInt(searchParams.get("page") || "1", 10);
         const limit = parseInt(searchParams.get("limit") || "10", 10);
-        const userId = searchParams.get("userId"); // Optional filtering by userId
+        const startDate = searchParams.get("startDate");
+        const endDate = searchParams.get("endDate");
+        const userId = searchParams.get("userId");
 
-        const matchCondition = {
+        // Construct filtering conditions
+        const matchCondition: Record<string, any> = {
             ...(userId ? { userId: new mongoose.Types.ObjectId(userId) } : {}),
+            ...(startDate && endDate
+                ? {
+                    createdAt: {
+                        $gte: new Date(startDate), // Greater than or equal to startDate
+                        $lte: new Date(endDate),   // Less than or equal to endDate
+                    },
+                }
+                : startDate
+                    ? { createdAt: { $gte: new Date(startDate) } } // Only from startDate
+                    : endDate
+                        ? { createdAt: { $lte: new Date(endDate) } } // Only until endDate
+                        : {}),
         };
-        // Calculate skip value for pagination
+
+        // Calculate pagination values
         const skip = (page - 1) * limit;
 
-        // Fetch vouchers filtered by userId with pagination
-        const vouchers = await Vouchers.find({
-            ...(userId ? { userId } : {}), // Filter by userId if provided
-        })
+        // Fetch vouchers with filtering, sorting, and pagination
+        const vouchers = await Vouchers.find(matchCondition)
             .populate("userId", "name email") // Populate user details
-            .sort({ createdAt: -1 }) // Sort by `createdAt` in descending order (newest first)
+            .sort({ createdAt: -1 }) // Sort by `createdAt` in descending order
             .skip(skip)
             .limit(limit);
 
-        // Get total count of vouchers filtered by userId
-        const totalVouchers = await Vouchers.countDocuments({
-            ...(userId ? { userId } : {}), // Count only matching userId if provided
-        });
+        // Count total vouchers matching the filters
+        const totalVouchers = await Vouchers.countDocuments(matchCondition);
 
-        // Aggregate to calculate total incomeAmount and expenseAmount
+        // Calculate total income and expense amounts using aggregation
         const totals = await Vouchers.aggregate([
-            {
-                $match: matchCondition,
-            },
+            { $match: matchCondition }, // Apply the same filters
             {
                 $group: {
-                    _id: null, // Group everything together
-                    totalExpenseAmount: { $sum: "$expenseAmount" }, // Sum all expense amounts
-                    totalIncomeAmount: { $sum: "$incomeAmount" },   // Sum all income amounts
+                    _id: null,
+                    totalExpenseAmount: { $sum: "$expenseAmount" },
+                    totalIncomeAmount: { $sum: "$incomeAmount" },
                 },
             },
         ]);
 
-        // Default to 0 if no matching documents
-        const totalsObject = totals.length > 0 ? {
-            totalExpenseAmount: totals[0].totalExpenseAmount || 0,
-            totalIncomeAmount: totals[0].totalIncomeAmount || 0,
-        } : {
-            totalExpenseAmount: 0,
-            totalIncomeAmount: 0,
-        };
+        // Prepare totals with default values if no documents are found
+        const totalsObject = totals.length > 0
+            ? {
+                totalExpenseAmount: totals[0].totalExpenseAmount || 0,
+                totalIncomeAmount: totals[0].totalIncomeAmount || 0,
+            }
+            : {
+                totalExpenseAmount: 0,
+                totalIncomeAmount: 0,
+            };
 
-        // Return the response
+        // Return the response with vouchers, pagination, and totals
         return NextResponse.json({
             vouchers,
             pagination: {
@@ -69,8 +81,11 @@ export async function GET(req: NextRequest) {
             totals: totalsObject,
         });
     } catch (err: any) {
-        console.error("Error fetching vouchers:", err);
-        return NextResponse.json({ error: err.message }, { status: 500 });
+        console.error("Error fetching vouchers:", err.message);
+        return NextResponse.json(
+            { error: "Failed to fetch vouchers. Please try again later." },
+            { status: 500 }
+        );
     }
 }
 

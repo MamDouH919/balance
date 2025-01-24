@@ -15,7 +15,7 @@ import TableBodyWithLoad from '@/Component/TableBodyWithLoad';
 import { FixedTableCell } from '@/Component/FixedTableCell';
 import MUITablePagination from '@/Component/TablePagination';
 import Form from './_Form';
-import { dateFormatLL } from '@/Component/helperFunctions/dateFunctions';
+import { dateFormat, dateFormatLL } from '@/Component/helperFunctions/dateFunctions';
 import { TableCellColor } from '@/Component/CellColor';
 import { useSession } from 'next-auth/react';
 import DeleteDialog from './_delete';
@@ -65,9 +65,14 @@ const Root = styled("div")(({ theme }) => ({
     },
 }));
 
+// const initDate = moment(new Date()).locale("en").format("YYYY-MM-DD");
+
 export default function TransactionsList() {
     const [page, setPage] = React.useState(0);
     const [pageSize, setPageSize] = React.useState(20);
+
+    const [startDate, setStartDate] = React.useState<Date | null>(new Date());
+    const [endDate, setEndDate] = React.useState<Date | null>(new Date());
     const session = useSession();
 
     const [fetch, setFetch] = React.useState(false);
@@ -81,7 +86,13 @@ export default function TransactionsList() {
 
     const fetchData = async () => {
         const response = await
-            axios.get(`/api/vouchers?page=${page + 1}&limit=${pageSize}&${session.data?.user.role === "user" ? `userId=${session.data?.user.userId}` : ''}`)
+            axios.get(`/api/vouchers?page=${page + 1}
+                &limit=${pageSize}
+                &${session.data?.user.role === "user" ? `userId=${session.data?.user.userId}` : ''}
+                &${startDate ? `startDate=${dateFormat(startDate)}` : ''}
+                &${endDate ? `endDate=${dateFormat(endDate)}` : ''}
+                `)
+
         setLoading(false);
         setData(response.data.vouchers);
         setTotals(response.data.totals);
@@ -131,7 +142,7 @@ export default function TransactionsList() {
     ]
 
     if (session.data?.user.role !== "user") {
-        tableCellHeader.splice(1, 0, "");
+        // tableCellHeader.splice(0, 0, "");
     }
 
     const types: Record<"income" | "expense", string> = {
@@ -139,24 +150,22 @@ export default function TransactionsList() {
         expense: "مصروفات",
     };
 
-    const onSubmit = (data: any) => {
+    const onSubmit = async (data: any) => {
         console.log(data);
+        setLoading(true);
 
-        const filteredData = Object.fromEntries(
-            Object.entries(data).filter(([value]) => value !== null && value !== "")
-        );
+        const response = await
+            axios.get(`/api/vouchers?page=${1}
+                &limit=${pageSize}
+                &${session.data?.user.role === "user" ? `userId=${session.data?.user.userId}` : ''}
+                &${startDate ? `startDate=${dateFormat(startDate)}` : ''}
+                &${endDate ? `endDate=${dateFormat(endDate)}` : ''}
+                `)
 
-        if (Object.entries(filteredData).length === 0) {
-            // navigate(`/dashboard/orders`)
-        } else {
-            // if (filteredData.date) {
-            //     filteredData.date = dateFormat(filteredData.date);
-            // }
-            // // Convert the filtered data to URLSearchParams
-            // const searchParams = new URLSearchParams(filteredData).toString();
-            // // Navigate to the new URL with search parameters
-            // navigate(`?${searchParams}`);
-        }
+        setLoading(false);
+        setData(response.data.vouchers);
+        setTotals(response.data.totals);
+        setTotalCount(response.data.pagination.totalVouchers);
     };
 
     return (
@@ -194,11 +203,22 @@ export default function TransactionsList() {
                         <LoadingButton loading={loading} variant='contained' type='submit'>{"بحث"}</LoadingButton>
                     </Stack>
                     <Box className={classes.grid}>
-                        <Stack width={"180px"}>
+                        <Stack width={"200px"}>
                             <MUIDate
-                                label={"date"}
+                                label={"من تاريخ"}
                                 control={control}
-                                name="date"
+                                name="startDate"
+                                value={startDate}
+                                onChange={setStartDate}
+                            />
+                        </Stack>
+                        <Stack width={"200px"}>
+                            <MUIDate
+                                label={"إلي تاريخ"}
+                                control={control}
+                                name="endDate"
+                                value={endDate}
+                                onChange={setEndDate}
                             />
                         </Stack>
                     </Box>
@@ -224,23 +244,21 @@ export default function TransactionsList() {
                                             <TableRow hover role="checkbox" tabIndex={-1} key={index}>
                                                 <FixedTableCell>
                                                     {index + 1}
+                                                    {session.data?.user.role !== "user" &&
+                                                        row.status === "pending" &&
+                                                        <IconButton
+                                                            color='error'
+                                                            size='small'
+                                                            onClick={() => {
+                                                                setDataById(row)
+                                                                setOpenUpdateDialog(true)
+                                                            }}
+                                                        >
+                                                            <Info fontSize='inherit' />
+                                                        </IconButton>
+                                                    }
                                                 </FixedTableCell>
-                                                {session.data?.user.role !== "user" &&
-                                                    <FixedTableCell>
-                                                        {row.status === "pending" &&
-                                                            <IconButton
-                                                                color='error'
-                                                                size='small'
-                                                                onClick={() => {
-                                                                    setDataById(row)
-                                                                    setOpenUpdateDialog(true)
-                                                                }}
-                                                            >
-                                                                <Info fontSize='inherit' />
-                                                            </IconButton>
-                                                        }
-                                                    </FixedTableCell>
-                                                }
+
                                                 <FixedTableCell>
                                                     {row.title}
                                                 </FixedTableCell>
@@ -277,6 +295,7 @@ export default function TransactionsList() {
                                                     </IconButton>
                                                     }
                                                 </FixedTableCell>
+
 
                                             </TableRow>
                                         );

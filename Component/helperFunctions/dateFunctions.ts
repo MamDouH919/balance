@@ -1,6 +1,6 @@
 import moment from "moment";
 
-export const dateFormat = (date: string | null, lang?: string | null) =>
+export const dateFormat = (date: any | null, lang?: string | null) =>
   date
     ? moment(date)
       .locale(lang ?? "en")

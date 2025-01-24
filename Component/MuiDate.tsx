@@ -1,13 +1,11 @@
 import {
     FormControl,
-    FormHelperText,
-    IconButton,
-    Stack,
+    TextField,
 } from "@mui/material";
 import { useController, Control } from "react-hook-form";
 import { DatePicker, LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
-import { Clear } from "@mui/icons-material";
+import { enUS } from "date-fns/locale";
 
 interface MUIDateProps {
     control: Control<any>;
@@ -21,7 +19,7 @@ interface MUIDateProps {
     value?: Date | null;
     InputProps?: Record<string, any>;
     [key: string]: any;
-    disablePast?: boolean
+    disablePast?: boolean;
 }
 
 const MUIDate: React.FC<MUIDateProps> = ({
@@ -38,7 +36,7 @@ const MUIDate: React.FC<MUIDateProps> = ({
 }) => {
     const {
         formState: { errors },
-        field: { value: fieldValue, onChange: fieldChange, },
+        field: { value: fieldValue, onChange: fieldChange },
     } = useController({
         name,
         control,
@@ -47,44 +45,31 @@ const MUIDate: React.FC<MUIDateProps> = ({
     });
 
     return (
-        <LocalizationProvider dateAdapter={AdapterDateFns} >
+        <LocalizationProvider
+            dateAdapter={AdapterDateFns}
+            adapterLocale={enUS} // Set locale for formatting
+        >
             <FormControl variant="filled" fullWidth size="small">
                 <DatePicker
                     {...restProps}
                     label={label}
                     value={value || fieldValue}
-                    format="dd/MM/yyyy" // Adjusted to `format` in v6
                     onChange={(newValue) => {
                         fieldChange(newValue);
                         onChange && onChange(newValue);
                     }}
                     disabled={disabled}
                     disablePast={disablePast ?? false}
-                    slotProps={{
-                        textField: {
-                            InputProps: {
-                                startAdornment: (
-                                    <Stack direction="row" pr={1} alignItems="center">
-                                        {/* Clear button */}
-                                        <IconButton
-                                            size="small"
-                                            onClick={() => fieldChange(null)}
-                                            aria-label="clear"
-                                        >
-                                            <Clear fontSize="inherit" />
-                                        </IconButton>
-                                        {/* Default calendar button */}
-                                    </Stack>
-                                ),
-                            }
-                        },
-                    }}
+                    
+                    renderInput={(params) => (
+                        <TextField
+                            {...params}
+                            size="small"
+                            error={!!errors[name]}
+                            helperText={errors[name]?.message as string}
+                        />
+                    )}
                 />
-                {errors[name] && (
-                    <FormHelperText error>
-                        {errors[name]?.message as string}
-                    </FormHelperText>
-                )}
             </FormControl>
         </LocalizationProvider>
     );
