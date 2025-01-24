@@ -65,10 +65,7 @@ export const authOptions: AuthOptions = {
     ],
     callbacks: {
         async jwt({ token }) {
-            console.log("token", token);
-            
             const userExists = await User.findOne({ email: token.email });
-            console.log(userExists);
 
             if (!userExists) {
                 // If user doesn't exist, mark the token as invalid
@@ -90,9 +87,6 @@ export const authOptions: AuthOptions = {
             return token;
         },
         async session({ session, token }) {
-            console.log("token", token);
-            console.log("session", session.user);
-
             if (token.isValid === false) {
                 return {
                     user: undefined,

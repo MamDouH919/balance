@@ -5,7 +5,7 @@ import TableBody from '@mui/material/TableBody';
 import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
-import { Button, Stack } from '@mui/material';
+import { Box, Button, IconButton, Stack, Typography } from '@mui/material';
 import { styled } from "@mui/material/styles";
 
 import axios from 'axios';
@@ -15,16 +15,22 @@ import TableBodyWithLoad from '@/Component/TableBodyWithLoad';
 import { FixedTableCell } from '@/Component/FixedTableCell';
 import MUITablePagination from '@/Component/TablePagination';
 import Form from './_Form';
-import { useSearchParams } from 'next/navigation';
 import { dateFormatLL } from '@/Component/helperFunctions/dateFunctions';
 import { TableCellColor } from '@/Component/CellColor';
-
+import { useSession } from 'next-auth/react';
+import DeleteDialog from './_delete';
+import { Delete, Info } from '@mui/icons-material';
+import UpdateDialog from './_update';
+import { LoadingButton } from '@mui/lab';
+import { useForm } from 'react-hook-form';
+import MUIDate from '@/Component/MuiDate';
 
 const PREFIX = "orders";
 const classes = {
     filter: `${PREFIX}-filter`,
     filterActive: `${PREFIX}-filterActive`,
     title: `${PREFIX}-title`,
+    grid: `${PREFIX}-grid`,
 };
 const Root = styled("div")(({ theme }) => ({
     height: "100%",
@@ -43,11 +49,26 @@ const Root = styled("div")(({ theme }) => ({
     [`& .${classes.title}`]: {
         fontSize: "22px"
     },
+    [`& .${classes.grid}`]: {
+        display: "grid",
+        gridAutoFlow: "column", /* Forces items to be laid out in a single row */
+        gridGap: "10px", /* Optional: Adds spacing between items */
+        overflowX: "scroll", /* Allows horizontal scrolling if items overflow */
+        whiteSpace: "nowrap",
+        width: "100%",
+        MsOverflowStyle: "none", /* Internet Explorer 10+ */
+        "&::-webkit-scrollbar": {
+            display: "none"
+        },
+        justifyContent: "start",
+        alignItems: "center"
+    },
 }));
 
 export default function TransactionsList() {
     const [page, setPage] = React.useState(0);
     const [pageSize, setPageSize] = React.useState(20);
+    const session = useSession();
 
     const [fetch, setFetch] = React.useState(false);
     const [loading, setLoading] = React.useState(true);
@@ -56,13 +77,11 @@ export default function TransactionsList() {
     const [totals, setTotals] = React.useState<any>({});
     const [totalCount, setTotalCount] = React.useState<number>(0);
 
-    const searchParams = useSearchParams();
-    const status = searchParams.get("status");
-    console.log(data);
-
+    const { control, handleSubmit } = useForm()
 
     const fetchData = async () => {
-        const response = await axios.get(`/api/vouchers?page=${page + 1}&limit=${pageSize}&${status ? `status=${status}` : ''}`)
+        const response = await
+            axios.get(`/api/vouchers?page=${page + 1}&limit=${pageSize}&${session.data?.user.role === "user" ? `userId=${session.data?.user.userId}` : ''}`)
         setLoading(false);
         setData(response.data.vouchers);
         setTotals(response.data.totals);
@@ -85,20 +104,59 @@ export default function TransactionsList() {
 
 
     const [openDialog, setOpenDialog] = React.useState(false)
+    const [openDeleteDialog, setOpenDeleteDialog] = React.useState(false)
+    const [openUpdateDialog, setOpenUpdateDialog] = React.useState(false)
     const [dataById, setDataById] = React.useState(null)
+
     const closeDialog = (value?: any) => {
         setDataById(null)
         setOpenDialog(false)
         value && setFetch(prev => !prev)
     };
 
+    const closeDeleteDialog = (value?: any) => {
+        setDataById(null)
+        setOpenDeleteDialog(false)
+        value && setFetch(prev => !prev)
+    };
+
+    const closeUpdateDialog = (value?: any) => {
+        setDataById(null)
+        setOpenUpdateDialog(false)
+        value && setFetch(prev => !prev)
+    };
+
     const tableCellHeader = [
-        "ــ", "عنوان السند", "نوع السند", "الوصف", "المقبوض", "المدفوع", "القائم بالإنشاء", "تاريخ الإنشاء"
+        "", "عنوان السند", "نوع السند", "الوصف", "الاستلامات النقدية", "المصروفات", "القائم بالإنشاء", "تاريخ الإنشاء", "حذف"
     ]
 
+    if (session.data?.user.role !== "user") {
+        tableCellHeader.splice(1, 0, "");
+    }
+
     const types: Record<"income" | "expense", string> = {
-        income: "سند قبض",
-        expense: "سند دفع",
+        income: "استلام نقدي",
+        expense: "مصروفات",
+    };
+
+    const onSubmit = (data: any) => {
+        console.log(data);
+
+        const filteredData = Object.fromEntries(
+            Object.entries(data).filter(([value]) => value !== null && value !== "")
+        );
+
+        if (Object.entries(filteredData).length === 0) {
+            // navigate(`/dashboard/orders`)
+        } else {
+            // if (filteredData.date) {
+            //     filteredData.date = dateFormat(filteredData.date);
+            // }
+            // // Convert the filtered data to URLSearchParams
+            // const searchParams = new URLSearchParams(filteredData).toString();
+            // // Navigate to the new URL with search parameters
+            // navigate(`?${searchParams}`);
+        }
     };
 
     return (
@@ -110,12 +168,40 @@ export default function TransactionsList() {
                     handleClose={closeDialog}
                 />
             }
+            {openDeleteDialog &&
+                <DeleteDialog
+                    dataById={dataById}
+                    open={openDeleteDialog}
+                    handleClose={closeDeleteDialog}
+                />
+            }
+            {openUpdateDialog &&
+                <UpdateDialog
+                    dataById={dataById}
+                    open={openUpdateDialog}
+                    handleClose={closeUpdateDialog}
+                />
+            }
             <Stack spacing={2} height={"100%"} overflow={"hidden"}>
                 <Stack direction={"row"} spacing={2} justifyContent={"space-between"} useFlexGap>
-                    <ListHeaderTitle title={"المستخدمين"} />
+                    <ListHeaderTitle title={"الحسابات"} />
                     <Button variant="contained" color="primary" size="small" onClick={() => setOpenDialog(true)}>
                         {"جديد"}
                     </Button>
+                </Stack>
+                <Stack direction={"row"} spacing={1} component={"form"} onSubmit={handleSubmit(onSubmit)} minHeight={50}>
+                    <Stack width={"100px"} justifyContent={"center"}>
+                        <LoadingButton loading={loading} variant='contained' type='submit'>{"بحث"}</LoadingButton>
+                    </Stack>
+                    <Box className={classes.grid}>
+                        <Stack width={"180px"}>
+                            <MUIDate
+                                label={"date"}
+                                control={control}
+                                name="date"
+                            />
+                        </Stack>
+                    </Box>
                 </Stack>
 
                 {!loading && data.length === 0 && <div>No Data</div>}
@@ -124,8 +210,8 @@ export default function TransactionsList() {
                         <Table stickyHeader aria-label="sticky table">
                             <TableHead>
                                 <TableRow>
-                                    {tableCellHeader.map(e =>
-                                        <FixedTableCell align={'left'} key={e}>
+                                    {tableCellHeader.map((e, i) =>
+                                        <FixedTableCell align={'left'} key={i}>
                                             {e}
                                         </FixedTableCell>
                                     )}
@@ -139,6 +225,22 @@ export default function TransactionsList() {
                                                 <FixedTableCell>
                                                     {index + 1}
                                                 </FixedTableCell>
+                                                {session.data?.user.role !== "user" &&
+                                                    <FixedTableCell>
+                                                        {row.status === "pending" &&
+                                                            <IconButton
+                                                                color='error'
+                                                                size='small'
+                                                                onClick={() => {
+                                                                    setDataById(row)
+                                                                    setOpenUpdateDialog(true)
+                                                                }}
+                                                            >
+                                                                <Info fontSize='inherit' />
+                                                            </IconButton>
+                                                        }
+                                                    </FixedTableCell>
+                                                }
                                                 <FixedTableCell>
                                                     {row.title}
                                                 </FixedTableCell>
@@ -152,10 +254,10 @@ export default function TransactionsList() {
                                                     {row.description}
                                                 </FixedTableCell>
                                                 <FixedTableCell>
-                                                    {row.incomeAmount}
+                                                    {row.incomeAmount ? row.incomeAmount + " جنية" : "ــــ"}
                                                 </FixedTableCell>
                                                 <FixedTableCell>
-                                                    {row.expenseAmount}
+                                                    {row.expenseAmount ? row.expenseAmount + " جنية" : "ــــ"}
                                                 </FixedTableCell>
                                                 <FixedTableCell>
                                                     {row.userId.email}
@@ -163,17 +265,19 @@ export default function TransactionsList() {
                                                 <FixedTableCell>
                                                     {dateFormatLL(row.createdAt, "ar")}
                                                 </FixedTableCell>
-                                                {/* <FixedTableCell>
-                                                    <IconButton
+                                                <FixedTableCell>
+                                                    {row.status === "approved" && <IconButton
                                                         size='small'
                                                         onClick={() => {
                                                             setDataById(row)
-                                                            setOpenDialog(true)
+                                                            setOpenDeleteDialog(true)
                                                         }}
                                                     >
-                                                        <Edit fontSize='inherit' />
+                                                        <Delete fontSize='inherit' />
                                                     </IconButton>
-                                                </FixedTableCell> */}
+                                                    }
+                                                </FixedTableCell>
+
                                             </TableRow>
                                         );
                                     })}
@@ -181,13 +285,17 @@ export default function TransactionsList() {
                                         <FixedTableCell colSpan={3} allowPlaceholder={false} />
                                         <FixedTableCell>{"المجموع"}</FixedTableCell>
                                         <FixedTableCell>
-                                            {totals.totalIncomeAmount}
+                                            {totals.totalIncomeAmount}{" "}{"جنية"}
                                         </FixedTableCell>
                                         <FixedTableCell>
-                                            {totals.totalExpenseAmount}
+                                            {totals.totalExpenseAmount}{" "}{"جنية"}
                                         </FixedTableCell>
-                                        <FixedTableCell>
-                                            {"الصافي"}{": "}{totals.totalIncomeAmount - totals.totalExpenseAmount}
+                                        <FixedTableCell >
+                                            {"الصافي"}{": "}
+                                            <Typography component={"span"} variant={"body2"} dir='ltr' px={1}>
+                                                {totals.totalIncomeAmount - totals.totalExpenseAmount}
+                                            </Typography>
+                                            جنية
                                         </FixedTableCell>
                                         <FixedTableCell colSpan={4} allowPlaceholder={false} />
                                     </TableRow>

@@ -23,9 +23,13 @@ export const metadata: Metadata = {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
     const session = await getServerSession(authOptions) // Explicitly pass authOptions
-    
+
     return (
         <html lang="en" dir="rtl">
+            <head>
+                <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet" />
+                <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+            </head>
             <body className={cairo.variable}>
                 <NextAuthSession session={session}>
                     <ThemeProviderRTL>

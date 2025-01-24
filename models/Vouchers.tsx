@@ -5,6 +5,7 @@ export interface IVouchers extends Document {
     title: string;
     description: string;
     expenseAmount: number;
+    reason: string;
     incomeAmount: number;
     userId: mongoose.Schema.Types.ObjectId;
     status: "pending" | "approved" | "rejected"; // track the status of admin approval
@@ -43,6 +44,9 @@ const VouchersSchema: Schema = new mongoose.Schema({
         type: String,
         enum: ["pending", "approved"],
         default: "approved", // initial status is pending until admin approves
+    },
+    reason: {
+        type: String,
     },
     createdAt: {
         type: Date,

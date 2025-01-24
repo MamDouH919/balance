@@ -1,13 +1,13 @@
 import ControlMUITextField from '@/Component/ControlMUItextField'
 import CustomDialog from '@/Component/CustomDialog'
-import MuiSwitch from '@/Component/MuiSwitch'
 import LoadingButton from '@mui/lab/LoadingButton'
-import { Stack, Typography } from '@mui/material'
+import { Alert, Stack, Typography } from '@mui/material'
 import axios from 'axios'
+import { useSession } from 'next-auth/react'
 import React, { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 
-const Form = ({
+const DeleteDialog = ({
     open,
     handleClose,
     dataById
@@ -16,26 +16,24 @@ const Form = ({
     handleClose: (value: any) => void,
     dataById: any
 }) => {
+    const session = useSession();
     const [loading, setLoading] = React.useState(false)
     const { handleSubmit, control, setError, setValue } = useForm()
     const onSubmit = async (data: any) => {
         setLoading(true) // Set loading state to true when submitting
         try {
-            if (dataById?._id) {
-                // Update User
-                await axios.post(`/api/updateUser`, data)
+            data.userId = session.data?.user.userId
+            if (session.data?.user.role === "user") {
+                data.status = "pending"
+                await axios.post(`/api/vouchers/update`, data)
             } else {
-                // Create User
-               await axios.post('/api/users', data)
+                await axios.post(`/api/vouchers/delete`, data)
             }
-            // Send form data to your backend API
-            // await axios.post('/api/users', data)
-            // Handle the successful creation of the user
-            // Close the dialog or show a success message
+
             handleClose(true)
         } catch (error: any) {
             if (error.response.data) {
-                setError("email", { type: "manual", message: error.response.data.email });
+                error.response.data.title && setError("title", { type: "manual", message: error.response.data.title });
             }
             // Handle the error (you can show an error message here)
         } finally {
@@ -44,12 +42,8 @@ const Form = ({
     }
 
     useEffect(() => {
-        !dataById && setValue("isActive", true)
         if (dataById) {
             setValue("id", dataById._id)
-            setValue("isActive", !!dataById.isActive)
-            setValue("name", dataById.name)
-            setValue("email", dataById.email)
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [dataById])
@@ -64,41 +58,26 @@ const Form = ({
             }}
             title={
                 <Stack direction={"row"} justifyContent={"space-between"} alignItems={"center"}>
-                    <Typography fontSize={19}>{dataById ? "تعديل المستخدم" : "مستخدم جديد"}</Typography>
-                    <MuiSwitch
-                        edge="end"
-                        name="isActive"
-                        label={"فعال"}
-                        control={control}
-                    />
+                    <Typography fontSize={19}>{"حذف المدخل"}</Typography>
                 </Stack>
             }
             content={
                 <Stack py={2} spacing={2}>
-                    <ControlMUITextField
-                        label={"الاسم"}
+                    {session.data?.user.role !== "user" && <Alert severity={"error"} sx={{ mb: 2 }}>
+                        {"هذا الحذف لا يمكن التراجع عنه ولا يمكن استعادته مرة أخرى"}
+                    </Alert>}
+                    {session.data?.user.role === "user" && <Alert severity={"warning"} sx={{ mb: 2 }}>
+                        {"سيتم الرجوع للمسؤول قبل الحذف"}
+                    </Alert>}
+                    {session.data?.user.role === "user" && <ControlMUITextField
+                        label={"سبب الحذف"}
                         control={control}
-                        name="name"
+                        name="reason"
+                        rows={4}
                         rules={{
                             required: "هذا الحقل مطلوب",
                         }}
-                    />
-                    <ControlMUITextField
-                        label={"البريد الإلكتروني"}
-                        control={control}
-                        name="email"
-                        rules={{
-                            required: "هذا الحقل مطلوب",
-                        }}
-                    />
-                    <ControlMUITextField
-                        label={"كلمة المرور"}
-                        control={control}
-                        name="password"
-                        rules={{
-                            required: dataById ? false : "هذا الحقل مطلوب",
-                        }}
-                    />
+                    />}
                 </Stack>
             }
             buttonAction={
@@ -108,4 +87,4 @@ const Form = ({
     )
 }
 
-export default Form
+export default DeleteDialog

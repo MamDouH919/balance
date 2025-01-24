@@ -1,12 +1,13 @@
 "use client"
 import React, { Fragment, useState } from 'react';
-import { Avatar, Button, Container, IconButton, Paper, Stack, Typography } from '@mui/material';
+import { Avatar, Container, IconButton, Paper, Stack, Typography } from '@mui/material';
 import { styled } from "@mui/material/styles";
 import { LockOutlined, Visibility, VisibilityOff } from '@mui/icons-material';
 import { useForm } from 'react-hook-form';
 import ControlMUITextField from './ControlMUItextField';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import LoadingButton from '@mui/lab/LoadingButton';
 
 const PREFIX = "Login";
 
@@ -52,6 +53,7 @@ const Login = () => {
 
     const [errorMessage, setErrorMessage] = useState<string | null>(null); // State to store the error message
     const { control, handleSubmit, setError } = useForm();
+    const [loading, setLoading] = useState(false)
 
     // async function submitHandler() {
     //     const data = {
@@ -71,8 +73,7 @@ const Login = () => {
     // }
 
     const onSubmit = async (data: any) => {
-        console.log('Form Data:', data);
-
+        setLoading(true)
         try {
             // Call NextAuth's signIn function with credentials
             const result = await signIn('credentials', {
@@ -80,10 +81,10 @@ const Login = () => {
                 email: data.email,
                 password: data.password,
             });
-            console.log(result);
 
 
             if (result?.error) {
+                setLoading(false)
                 // If there's an error, update the error message state
                 const errors = JSON.parse(result.error)
                 if (errors.email) {
@@ -96,6 +97,7 @@ const Login = () => {
                     setErrorMessage(errors.isActive);
                 }
             } else {
+                setLoading(false)
                 router.refresh();
                 router.replace('/');
             }
@@ -144,7 +146,8 @@ const Login = () => {
                                     }
                                 }}
                             />
-                            <Button
+                            <LoadingButton
+                                loading={loading}
                                 fullWidth
                                 size="large"
                                 variant="contained"
@@ -152,7 +155,7 @@ const Login = () => {
                                 type="submit"
                             >
                                 تسجيل الدخول
-                            </Button>
+                            </LoadingButton>
 
                             {/* Show error message if there's any */}
                             {errorMessage && (

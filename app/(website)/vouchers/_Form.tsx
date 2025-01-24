@@ -2,7 +2,7 @@ import ControlMUITextField from '@/Component/ControlMUItextField'
 import CustomDialog from '@/Component/CustomDialog'
 import MuiSelect from '@/Component/MuiSelect'
 import LoadingButton from '@mui/lab/LoadingButton'
-import { Stack, Typography } from '@mui/material'
+import { Alert, Stack, Typography } from '@mui/material'
 import axios from 'axios'
 import { useSession } from 'next-auth/react'
 import React, { useEffect } from 'react'
@@ -19,17 +19,13 @@ const Form = ({
 }) => {
     const session = useSession();
     const [loading, setLoading] = React.useState(false)
+    const [errorMsg, setErrorMsg] = React.useState(false)
     const { handleSubmit, control, setError, setValue } = useForm()
     const onSubmit = async (data: any) => {
         setLoading(true) // Set loading state to true when submitting
         try {
             data.userId = session.data?.user.userId
-            const response = await axios.post(`/api/vouchers`, data)
-            console.log('User updated:', response.data)
-            // Send form data to your backend API
-            // await axios.post('/api/users', data)
-            // Handle the successful creation of the user
-            // Close the dialog or show a success message
+            await axios.post(`/api/vouchers`, data)
             handleClose(true)
         } catch (error: any) {
             if (error.response.data) {
@@ -37,12 +33,9 @@ const Form = ({
                 error.response.data.amount && setError("amount", { type: "manual", message: error.response.data.amount });
                 error.response.data.description && setError("description", { type: "manual", message: error.response.data.description });
                 error.response.data.type && setError("type", { type: "manual", message: error.response.data.type });
-                error.response.data.custom && console.log(error.response.data.custom);
+                error.response.data.custom && setErrorMsg(error.response.data.custom);
 
             }
-            console.log(error);
-            console.log('Error creating user:', error.response.data)
-            // Handle the error (you can show an error message here)
         } finally {
             setLoading(false) // Set loading state to false after request completion
         }
@@ -51,7 +44,6 @@ const Form = ({
     useEffect(() => {
         !dataById && setValue("isActive", true)
         if (dataById) {
-            console.log(dataById)
             setValue("id", dataById._id)
             setValue("isActive", !!dataById.isActive)
             setValue("name", dataById.name)
@@ -59,6 +51,7 @@ const Form = ({
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [dataById])
+
     return (
         <CustomDialog
             open={open}
@@ -70,7 +63,7 @@ const Form = ({
             }}
             title={
                 <Stack direction={"row"} justifyContent={"space-between"} alignItems={"center"}>
-                    <Typography fontSize={19}>{"مستخدم جديد"}</Typography>
+                    <Typography fontSize={19}>{"إضافة جديد"}</Typography>
                 </Stack>
             }
             content={
@@ -84,11 +77,11 @@ const Form = ({
                             [
                                 {
                                     value: "income",
-                                    key: "سند قبض",
+                                    key: "استلام نقدي",
                                 },
                                 {
                                     value: "expense",
-                                    key: "سند دفع",
+                                    key: "مصروفات",
                                 }
                             ]
                         }
@@ -108,6 +101,7 @@ const Form = ({
                         label={"المبلغ"}
                         control={control}
                         name="amount"
+                        type='number'
                         rules={{
                             required: "هذا الحقل مطلوب",
                         }}
@@ -121,7 +115,7 @@ const Form = ({
                             required: "هذا الحقل مطلوب",
                         }}
                     />
-
+                    {errorMsg && <Alert severity="error">{errorMsg}</Alert>}
                 </Stack>
             }
             buttonAction={

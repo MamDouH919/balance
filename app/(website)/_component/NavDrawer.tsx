@@ -16,6 +16,7 @@ import {
 } from '@mui/icons-material';
 
 import clsx from "clsx";
+import { useSession } from "next-auth/react";
 
 const PREFIX = "NavDrawer";
 
@@ -84,17 +85,27 @@ interface LinkItem {
 
 const NavDrawer = (props: propsInput) => {
     const { open, DrawerHeader } = props;
+    const session = useSession();
+
+    const user = session?.data?.user.role !== "user";
 
     const linksList: LinkItem[] = [
         {
+            pathname: "/",
+            icon: HouseOutlined,
+            primary: "الصفحة الرئيسية",
+
+        },
+        ...(user ? [{
             pathname: "/users",
             icon: DashboardOutlined,
             primary: "المستخدمين",
-        },
+        }] : []),
         {
             pathname: "/vouchers",
             icon: HouseOutlined,
-            primary: "سندات القبض والدفع",
+            primary: "الحسابات",
+
         },
     ];
 

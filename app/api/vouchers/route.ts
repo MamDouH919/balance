@@ -1,43 +1,43 @@
 import dbConnect from "@/lib/dbConnect";
 import User from "@/models/Users";
 import Vouchers from "@/models/Vouchers";
+import mongoose from "mongoose";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest) {
     await dbConnect();
 
     try {
-        console.log("Request URL:", req.url);
-
-        // Extract query parameters for pagination
+        // Extract query parameters for pagination and filtering
         const { searchParams } = new URL(req.url);
         const page = parseInt(searchParams.get("page") || "1", 10);
         const limit = parseInt(searchParams.get("limit") || "10", 10);
-        const status = parseInt(searchParams.get("status") || "");
+        const userId = searchParams.get("userId"); // Optional filtering by userId
 
-        // Calculate skip value
+        const matchCondition = {
+            ...(userId ? { userId: new mongoose.Types.ObjectId(userId) } : {}),
+        };
+        // Calculate skip value for pagination
         const skip = (page - 1) * limit;
 
-        // Fetch users by type with pagination
-        const vouchers = await Vouchers.find(({
-            ...(status && { status: status })
-        }))
-            .populate("userId", "name email")
+        // Fetch vouchers filtered by userId with pagination
+        const vouchers = await Vouchers.find({
+            ...(userId ? { userId } : {}), // Filter by userId if provided
+        })
+            .populate("userId", "name email") // Populate user details
+            .sort({ createdAt: -1 }) // Sort by `createdAt` in descending order (newest first)
             .skip(skip)
-            .limit(limit)
+            .limit(limit);
 
-
-
-        // Get total count of users with type 'user'
-        const totalVouchers = await Vouchers.countDocuments();
-
+        // Get total count of vouchers filtered by userId
+        const totalVouchers = await Vouchers.countDocuments({
+            ...(userId ? { userId } : {}), // Count only matching userId if provided
+        });
 
         // Aggregate to calculate total incomeAmount and expenseAmount
         const totals = await Vouchers.aggregate([
             {
-                $match: {
-                    ...(status && { status: status }), // Filter based on status if provided
-                },
+                $match: matchCondition,
             },
             {
                 $group: {
@@ -57,6 +57,7 @@ export async function GET(req: NextRequest) {
             totalIncomeAmount: 0,
         };
 
+        // Return the response
         return NextResponse.json({
             vouchers,
             pagination: {
@@ -68,9 +69,12 @@ export async function GET(req: NextRequest) {
             totals: totalsObject,
         });
     } catch (err: any) {
+        console.error("Error fetching vouchers:", err);
         return NextResponse.json({ error: err.message }, { status: 500 });
     }
 }
+
+const phoneNumberRegex = /^\d+$/
 
 export async function POST(req: NextRequest) {
     await dbConnect();
@@ -95,6 +99,13 @@ export async function POST(req: NextRequest) {
             }, { status: 400 });
         }
 
+        const valid = phoneNumberRegex.test(amount)
+        if (!valid) {
+            return NextResponse.json({
+                amount: "يجب ان يكون القيمة صحيحة"
+            }, { status: 400 });
+        }
+
         if (!["income", "expense"].includes(type)) {
             return NextResponse.json({
                 type: "النوع غير معروف"
@@ -111,7 +122,7 @@ export async function POST(req: NextRequest) {
             description,
             type,
             userId,
-            status: "pending"
+            status: "approved"
             // createdAt: new Date(),
         });
 

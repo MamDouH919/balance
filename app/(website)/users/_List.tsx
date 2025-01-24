@@ -17,6 +17,7 @@ import { FixedTableCell } from '@/Component/FixedTableCell';
 import MUITablePagination from '@/Component/TablePagination';
 import Form from './_Form';
 import { Edit } from '@mui/icons-material';
+import BooleanCell from '@/Component/BooleanCell';
 
 
 const PREFIX = "orders";
@@ -134,7 +135,7 @@ export default function UsersList() {
                                                     {row.email}
                                                 </FixedTableCell>
                                                 <FixedTableCell>
-                                                    {row.isActive ? "Yes" : "No"}
+                                                    <BooleanCell value={row.isActive} />
                                                 </FixedTableCell>
                                                 <FixedTableCell>
                                                     <IconButton

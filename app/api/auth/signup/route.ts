@@ -9,21 +9,15 @@ export async function POST(request: NextRequest) {
     const { email, password, ...data } = await request.json(); // Parse the body
 
     // Validate input
-    if (!email || !email.includes("@")) {      
+    if (!email || !email.includes("@")) {
       return NextResponse.json(
         { message: "Invalid input - password should also be at least 7 characters long." },
         { status: 422 }
       );
     }
-    console.log(data);
-    
 
     // Connect to the database
     await dbConnect();
-
-    console.log(data);
-    
-
     // Check if user already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
@@ -42,9 +36,7 @@ export async function POST(request: NextRequest) {
     await newUser.save();
 
     return NextResponse.json({ message: "Created user!" }, { status: 201 });
-  } catch (error) {
-    console.log(error);
-    
+  } catch {
     return NextResponse.json({ message: "Internal server error" }, { status: 500 });
   }
 }

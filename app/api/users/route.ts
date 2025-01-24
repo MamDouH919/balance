@@ -7,8 +7,6 @@ export async function GET(req: NextRequest) {
     await dbConnect();
 
     try {
-        console.log("Request URL:", req.url);
-
         // Extract query parameters for pagination
         const { searchParams } = new URL(req.url);
         const page = parseInt(searchParams.get("page") || "1", 10);

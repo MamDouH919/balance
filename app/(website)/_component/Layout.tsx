@@ -6,10 +6,12 @@ import MuiAppBar, { AppBarProps as MuiAppBarProps } from '@mui/material/AppBar';
 import Toolbar from '@mui/material/Toolbar';
 import IconButton from '@mui/material/IconButton';
 import MenuIcon from '@mui/icons-material/Menu';
-import { Stack } from '@mui/material';
-import Link from 'next/link';
+import { Stack, Tooltip, Typography } from '@mui/material';
 import NavDrawer from './NavDrawer';
 import useWidth, { isWidthDown } from '@/Component/helperFunctions/useWidth';
+import Footer from './Footer';
+import { LogoutOutlined } from '@mui/icons-material';
+import LogoutDialog from './LogoutDialog';
 
 const drawerWidth = 200;
 
@@ -33,10 +35,10 @@ const Main = styled('main', { shouldForwardProp: (prop) => prop !== 'open' })<{ 
     }),
 }));
 
-const Footer = styled('footer', { shouldForwardProp: (prop) => prop !== 'open' })<{ open?: boolean; }>(({ theme }) => ({
+const FooterStyle = styled('footer', { shouldForwardProp: (prop) => prop !== 'open' })<{ open?: boolean; }>(({ theme }) => ({
     // position: "absolute",
     // bottom: 0,
-    minHeight: "35px",
+    minHeight: "50px",
     width: "100%",
     // background: "#000",
     // background: theme.palette.background.paper,
@@ -84,6 +86,17 @@ export default function DashboardLayout({
         setOpen(prev => !prev);
     };
 
+    const [logoutState, setLogoutState] = React.useState<boolean>(false)
+
+    const handleCloseLogoutDialog = () => {
+        setLogoutState(false)
+    }
+
+    const handleOpenLogoutDialog = () => {
+        setLogoutState(true)
+    }
+
+
     // const handleDrawerClose = () => {
     //     setOpen(false);
     // };
@@ -93,6 +106,7 @@ export default function DashboardLayout({
 
     return (
         <Box sx={{ display: 'flex', minHeight: "100dvh", overflow: "hidden" }}>
+            {logoutState && <LogoutDialog open={logoutState} handleClose={handleCloseLogoutDialog} />}
             <AppBar position='fixed' open={open}>
                 <Toolbar sx={{ py: 1 }}>
                     <Stack direction={"row"} justifyContent={"space-between"} alignItems={"center"} width={"100%"}>
@@ -106,10 +120,21 @@ export default function DashboardLayout({
                             >
                                 <MenuIcon />
                             </IconButton>
-                            <Link href='/' passHref>
-                                TEST
-                            </Link>
+                            <Typography variant="h1" noWrap fontSize={20} color='primary.main'>
+                                د/ محمد لاشين
+                            </Typography>
                         </Stack>
+                        <Tooltip title={"تسجيل الخروج"}>
+                            <IconButton
+                                aria-label="profile"
+                                aria-controls="menu-appbar"
+                                aria-haspopup="true"
+                                color="default"
+                                onClick={handleOpenLogoutDialog}
+                            >
+                                <LogoutOutlined />
+                            </IconButton>
+                        </Tooltip>
                     </Stack>
                 </Toolbar>
             </AppBar>
@@ -126,9 +151,9 @@ export default function DashboardLayout({
                     <Stack flexGrow={1} overflow={"auto"} p={2} >
                         {children}
                     </Stack>
-                    <Footer>
-                        footer
-                    </Footer>
+                    <FooterStyle>
+                        <Footer />
+                    </FooterStyle>
                 </Stack>
             </Main>
         </Box>
